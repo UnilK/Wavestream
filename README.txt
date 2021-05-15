@@ -21,30 +21,22 @@ with subformats 0x0001 and 0x0003.
 
 
 
-Compiling tests:
+Compiling:
 
-Linux/(macOS):
+Running the makefile with command "make" should
+produce the following commands:
 
-Run the makefile with command "make" to compile the tests.
-It produces the following commands:
+mkdir -p  build
+g++ -c -std=c++17 -O2 -Wall -I include src/owavestream.cpp -o build/owavestream.o
+g++ -c -std=c++17 -O2 -Wall -I include src/wave_dialog.cpp -o build/wave_dialog.o
+g++ -c -std=c++17 -O2 -Wall -I include src/waveconfig.cpp -o build/waveconfig.o
+g++ -c -std=c++17 -O2 -Wall -I include src/iwavestream.cpp -o build/iwavestream.o
+mkdir -p bin
+ar crs bin/wavestream.a  build/owavestream.o  build/wave_dialog.o  build/waveconfig.o  build/iwavestream.o
 
-mkdir -p build
+With wavestream.a compiled, running "make test"
+compiles the tests:
 
-g++ -c -std=c++17 -O3 -Wall -I include src/owavestream.cpp -o build/owavestream.o
-
-g++ -c -std=c++17 -O3 -Wall -I include src/wave_dialog.cpp -o build/wave_dialog.o
-
-g++ -c -std=c++17 -O3 -Wall -I include src/waveconfig.cpp -o build/waveconfig.o
-
-g++ -c -std=c++17 -O3 -Wall -I include src/iwavestream.cpp -o build/iwavestream.o
-
-g++ -c -std=c++17 -O3 -Wall -I include test/test.cpp -o build/test.o
-
-g++ build/owavestream.o build/wave_dialog.o build/waveconfig.o build/iwavestream.o build/test.o -o bin/test
-
-(Windows):
-
-Run the commands produced by the makefile, but drop the -p flag in
-the mkdir command. Or just create the folder "build" in the project
-root folder in some other way.
+g++ -c  -I include test/test.cpp -o build/test.o
+g++ build/test.o bin/wavestream.a -o bin/test
 
