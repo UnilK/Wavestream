@@ -21,16 +21,16 @@ with subformats 0x0001 and 0x0003.
 
 
 
-Compiling:
+Compiling with makefile & GCC on Linux:
 
 Running the makefile with command "make" should
 produce the following commands:
 
 mkdir -p  build
-g++ -c -std=c++17 -O2 -Wall -I include src/owavestream.cpp -o build/owavestream.o
-g++ -c -std=c++17 -O2 -Wall -I include src/wave_dialog.cpp -o build/wave_dialog.o
-g++ -c -std=c++17 -O2 -Wall -I include src/waveconfig.cpp -o build/waveconfig.o
-g++ -c -std=c++17 -O2 -Wall -I include src/iwavestream.cpp -o build/iwavestream.o
+g++ -c -std=c++17 -O3 -Wall -I include src/owavestream.cpp -o build/owavestream.o
+g++ -c -std=c++17 -O3 -Wall -I include src/wave_dialog.cpp -o build/wave_dialog.o
+g++ -c -std=c++17 -O3 -Wall -I include src/waveconfig.cpp -o build/waveconfig.o
+g++ -c -std=c++17 -O3 -Wall -I include src/iwavestream.cpp -o build/iwavestream.o
 mkdir -p bin
 ar crs bin/wavestream.a  build/owavestream.o  build/wave_dialog.o  build/waveconfig.o  build/iwavestream.o
 

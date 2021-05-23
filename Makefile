@@ -17,7 +17,7 @@ BUILDSTRUCT := $(patsubst $(SRCDIR)%, $(BUILDDIR)%, $(SRCSTRUCT))
 INC := -I include
 
 #CXXFLAGS := -std=c++17 -g -Wall -fsanitize=leak
-CXXFLAGS := -std=c++17 -O2 -Wall
+CXXFLAGS := -std=c++17 -O3 -Wall
 
 $(RESLIB): $(BUILDSTRUCT) $(OBJECTS)
 	@echo "mkdir -p $(BINDIR)"
