@@ -213,6 +213,8 @@ int main(){
 	
 	owavestream O5("t5.wav", 0xfffe, 1, 16, 44100, 0x1, 1);
 	owavestream O6("t6.wav", 0xfffe, 1, 32, 44100, 0x3, 1);
+	
+    owavestream O7("t7.wav", &I);
 
 	// O0.write_file(&w);
 	O1.write_file(&w);
@@ -221,6 +223,26 @@ int main(){
 	O4.write_file(&w);
 	O5.write_file(&w);
 	O6.write_file(&w);
+
+    for(int i=0; i<3; i++) O7.write_samples(&w);
+    O7.close();
+
+
+    I.close();
+
+	std::vector<float> w2;
+    iwavestream I2(ifile);
+
+    for(int i=0; i<5; i++){
+        I2.read_frames(&w2, 1000, I2.get_frame_amount()/2);
+        while(I2.read_frames(&w, 1000));
+    }
+
+    owavestream O8;
+    O8.config(0x1, 1, 16, 44100);
+    O8.open("t8.wav");
+    O8.initialize();
+    O8.write_file(&w2);
 	
 	// for(auto i : O0.get_log()) cout << i << '\n';
 	// cout << '\n';
@@ -242,6 +264,16 @@ int main(){
 	cout << '\n';
 	cout << "t6, WAVE_FORMAT_EXTENSIBLE with subformat IEEE, 1 channel, 32 bits at 44,1 kHz:\n";
 	for(auto i : O6.get_log()) cout << i << '\n';
+	cout << '\n';
+    cout << "t7, initialized from test file & written in bits:";
+    for(auto i : O7.get_config()) cout << i << ' ';
+    cout << '\n';
+	for(auto i : O7.get_log()) cout << i << '\n';
+	cout << '\n';
+	cout << "t8, PCM, 1 channel, 16 bits at 44,1 kHz, file is read in a silly way:\n";
+	for(auto i : I2.get_log()) cout << i << '\n';
+	cout << '\n';
+	for(auto i : O8.get_log()) cout << i << '\n';
 	cout << '\n';
 
 	return 0;

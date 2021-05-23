@@ -19,24 +19,24 @@ protected:
         format = 0,         // 0x0001 (PCM), 0x0003 (IEEE) or 0xfffe (EXTENSIBLE)
         channels = 0,       // 1 - 18 of channels
         frameSize = 0,      // 1 frame = (1 sample from each channel)
-        sampleBits = 0,     // number of (used?) bits in a sample.
+        sampleBits = 0,     // number of (used?) bits in a sample. Only multiples of 8 are supported.
         sampleSize = 0,     // sample size in bytes.
         extensionSize = 0;  // Useless, formatSize already has this info
 
 
     uint32_t
-        fileSize = 0,       // (size of the whole file in bytes) - 4 
-        formatSize = 0,     // format chunk size
+        fileSize = 0,       // (size of the whole file in bytes) - 8 
+        formatSize = 0,     // format chunk size in bytes
         frameRate = 0,      // sampling rate, frames per second
         byteRate = 0,       // bytes per second
-        dataSize = 0;       // data chunk size
+        dataSize = 0;       // data chunk size in bytes
 
 
 
     // info for extensible format:
 
     uint16_t 
-        validSampleBits = 0,    // same as sampleBits, this is somewhat confusing.
+        validSampleBits = 0,    // same as sampleBits, as only multiples of 8 are supported.
         subformat = 0;          // actual format of the wave format extensible.
 
     uint32_t
@@ -120,7 +120,10 @@ public:
     uint16_t get_channel_mask();
     uint32_t get_data_size();
 
+    uint32_t get_frame_amount();    // data size in samples.
+
     std::vector<uint32_t> get_config();
+    // returns {format,  channels, sampleBits, frameRate, subformat, channelMask}
 
 };
 
@@ -157,10 +160,15 @@ public:
     bool open(std::string source_);
     bool close();
 
+
+    // continue reading amount frames from the current position.
+    // if end of file is reached, the rest of the values are assigned to 0.
     bool read_frames(std::vector<float> *waves, uint32_t amount);
+
+    // navigate to beginFrame & continue reading.
     bool read_frames(std::vector<float> *waves, uint32_t beginFrame, uint32_t amount);
     
-    // reads the whole file.
+    // reads the whole file, does no close it.
     bool read_file(std::vector<float> *waves);
         
 };
@@ -171,7 +179,7 @@ class owavestream : public waveconfig{
 
 protected:
 
-    uint32_t chunkSizePos = 4, dataSizePos = 0;
+    uint32_t chunkSizePos = 4, dataSizePos = 0, uselessPos = 0;
 
     std::string outSource;
     std::ofstream wavFile;
@@ -184,7 +192,8 @@ protected:
 public:
 
     owavestream();
-    owavestream(std::string file);
+    
+    // these constructors open & initialize the file
     owavestream(
             std::string outSource_,
             uint16_t format,
@@ -196,13 +205,19 @@ public:
 
     owavestream(std::string outSource_, waveconfig *other);
 
+    // wave files must be initialized before anything can be written on them.
     bool initialize();
 
+    // opens a wave file
     bool open(std::string outSource_);
+
+    // a file must be closed for the data to be written correctly.
     bool close();
 
-    bool write_frames(std::vector<float> *waves);
+    // appends waves at the end of the file
+    bool write_samples(std::vector<float> *waves);
 
+    // appends waves at the end of the file and closes it
     bool write_file(std::vector<float> *waves);
 
 };

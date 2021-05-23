@@ -20,22 +20,19 @@ owavestream::owavestream(){
     this->speak_data = NULL;
 }
 
-owavestream::owavestream(std::string outSource_){
-    this->speak_data = NULL;
-    this->open(outSource_);
-}
-
 owavestream::owavestream(std::string outSource_, uint16_t format, uint16_t channel_amount,
         uint16_t sample_size, uint32_t frame_rate, uint16_t subformat, uint32_t mask){
     this->speak_data = NULL;
     this->open(outSource_);
     this->config(format, channel_amount, sample_size, frame_rate, subformat, mask);
+    this->initialize();
 }
 
 owavestream::owavestream(std::string outSource_, waveconfig *other){
     this->speak_data = NULL;
     this->open(outSource_);
     this->copy_config(other);
+    this->initialize();
 }
 
 bool owavestream::open(std::string outSource_){
@@ -45,24 +42,58 @@ bool owavestream::open(std::string outSource_){
     return this->wavFile.good();
 }
 
+bool owavestream::close(){
+
+    this->fileSize = 12+this->formatSize+8+this->dataSize+(this->dataSize&1);
+    if(this->format != 0x0001) this->fileSize += 12;
+
+    char zeropad[9] = {0};
+    while((this->dataSize/this->sampleSize) % this->channels){
+        this->wavFile.write(zeropad, this->sampleSize);
+        this->dataSize += this->sampleSize;
+    }
+
+    if(this->dataSize&1){
+        // add pad byte if needed.
+        this->wavFile.write(zeropad, 1);
+    }
+
+    this->wavFile.seekp(this->chunkSizePos);
+    this->write_uint32(this->fileSize);
+
+    this->wavFile.seekp(this->dataSizePos);
+    this->write_uint32(this->dataSize);
+
+    if(this->uselessPos){
+        this->wavFile.seekp(this->uselessPos);
+        this->write_uint32(this->dataSize/this->sampleSize);
+    }
+
+    if(!this->wavFile){
+        this->add_log("error writing file while closing");
+        this->wavFile.close();
+        return 0;
+    }
+
+    this->wavFile.close();
+    
+    this->add_log(
+            "file closed with total size "+std::to_string(this->fileSize)
+            +" and data size "+std::to_string(this->dataSize));
+    
+    return 1;
+}
+
 const char EXTENSIBLE_GUID[15] = "\x00\x00\x00\x00\x10\x00\x80\x00\x00\xAA\x00\x38\x9b\x71";
 
 bool owavestream::initialize(){
     
-    return 1;
-}
-
-bool owavestream::write_frames(std::vector<float> *waves){
-
-    return 1;
-}
-
-bool owavestream::write_file(std::vector<float> *waves){
-    
     if(!this->wavFile.good()){
-        this->add_log("error writing file");
+        this->add_log("error writing file while initializing");
         return 0;
     }
+
+    this->wavFile.seekp(0);
 
     if(this->format == 0xfffe){ 
         this->speak_data = wave_dialog::resolve_speaker(this->subformat, this->validSampleBits);
@@ -85,16 +116,12 @@ bool owavestream::write_file(std::vector<float> *waves){
         }
     }
 
-    uint32_t wsize = waves->size();
-
-    this->dataSize = wsize*this->sampleSize;
-    this->fileSize = 12+this->formatSize+8+this->dataSize+(this->dataSize&1);
-
-    if(this->format == 0xfffe) this->fileSize += 12;
-
     char riffid[] = "RIFF", waveid[] = "WAVE", fmtid[] = "fmt ", dataid[] = "data";
     
     this->wavFile.write(riffid, 4);
+
+    // save the chunk size position for closing the file
+    this->chunkSizePos = this->wavFile.tellp();
     this->write_uint32(this->fileSize);
 
     this->wavFile.write(waveid, 4);
@@ -133,44 +160,67 @@ bool owavestream::write_file(std::vector<float> *waves){
         
         // weird standard.
 
-        uint32_t chunkSize = 4, uselessInfo = this->channels*wsize;
+        uint32_t chunkSize = 4, uselessInfo = 0;
 
         char factid[] = "fact";
         this->wavFile.write(factid, 4);
         this->write_uint32(chunkSize);
+
+        this->uselessPos = this->wavFile.tellp();
         this->write_uint32(uselessInfo);
 
     }
 
     this->wavFile.write(dataid, 4);
 
+    // save the data size position for closing the file
+    this->dataSizePos = this->wavFile.tellp();
     this->write_uint32(this->dataSize); 
-
-    // this->dataSize & 1 is for a weird pad byte standard.
-    char *buff = new char[this->dataSize+(this->dataSize&1)];
     
+    this->add_log(
+            "file initialized with:\nformat: "+std::to_string(this->format)
+            +"\nsubformat (if format is 0xfffe): "+std::to_string(this->subformat)
+            +"\nchannels: "+std::to_string(this->channels)
+            +"\nsample size: "+std::to_string(this->validSampleBits)
+            +"\nframe rate: "+std::to_string(this->frameRate));
+    
+
+    return 1;
+}
+
+bool owavestream::write_samples(std::vector<float> *waves){
+
+    uint32_t wsize = waves->size();
+
+    if((uint32_t)this->dataSize+wsize+72 > 1ll<<32){
+        this->add_log("can't write samples, file would be too large");
+        return 0;
+    }
+
+    this->dataSize += wsize*this->sampleSize;
+    
+    char *buff = new char[wsize*this->sampleSize];
+
     for(uint32_t i=0; i<wsize; i++){
         this->speak_data((*waves)[i], buff+i*this->sampleSize);
     }
 
-    this->wavFile.write(buff, this->dataSize+(this->dataSize&1));
+    this->wavFile.write(buff, wsize*this->sampleSize);
 
     if(!this->wavFile.good()){
         this->add_log("error writing file");
         return 0;
     }
 
-    this->wavFile.close();
-
-    this->add_log(
-            "file of size "+std::to_string(this->fileSize)
-            +" written with:\nformat: "+std::to_string(this->format)
-            +"\nsubformat (if format is 0xfffe): "+std::to_string(this->subformat)
-            +"\nchannels: "+std::to_string(this->channels)
-            +"\nsample size: "+std::to_string(this->validSampleBits)
-            +"\nframe rate: "+std::to_string(this->frameRate)
-            +"\ndata amount: "+std::to_string(this->dataSize));
-    
     return 1;
+}
+
+bool owavestream::write_file(std::vector<float> *waves){
+    
+    bool ok = 1;
+    ok = this->write_samples(waves);
+    if(!ok) return 0;
+    ok = this->close();
+    return ok;
 }
 

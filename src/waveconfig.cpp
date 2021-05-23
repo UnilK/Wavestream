@@ -152,11 +152,9 @@ bool waveconfig::copy_config(waveconfig *other){
     this->sampleSize = other->sampleSize;
     this->extensionSize = other->extensionSize;
 
-    this->fileSize = other->fileSize;
     this->formatSize = other->formatSize;
     this->frameRate = other->frameRate;
     this->byteRate = other->byteRate;
-    this->dataSize = other->dataSize;
 
     this->validSampleBits = other->validSampleBits;
     this->subformat = other->subformat;
@@ -192,6 +190,10 @@ uint16_t waveconfig::get_channel_mask(){
 
 uint32_t waveconfig::get_data_size(){
     return this->dataSize;
+}
+
+uint32_t waveconfig::get_frame_amount(){
+    return this->dataSize/this->frameSize;
 }
 
 std::vector<uint32_t> waveconfig::get_config(){
