@@ -215,12 +215,40 @@ bool owavestream::write_samples(std::vector<float> *waves){
     return 1;
 }
 
-bool owavestream::write_file(std::vector<float> *waves){
+bool owavestream::write_samples(float *waves, uint32_t amount){
+
+    uint32_t wsize = amount*this->channels;
+
+    if((uint32_t)this->dataSize+wsize+72 > 1ll<<32){
+        this->add_log("can't write samples, file would be too large");
+        return 0;
+    }
+
+    this->dataSize += wsize*this->sampleSize;
     
-    bool ok = 1;
-    ok = this->write_samples(waves);
-    if(!ok) return 0;
-    ok = this->close();
-    return ok;
+    char *buff = new char[wsize*this->sampleSize];
+
+    for(uint32_t i=0; i<wsize; i++){
+        this->speak_data(waves[i], buff+i*this->sampleSize);
+    }
+
+    this->wavFile.write(buff, wsize*this->sampleSize);
+
+    if(!this->wavFile.good()){
+        this->add_log("error writing file");
+        return 0;
+    }
+
+    return 1;
+}
+
+bool owavestream::write_file(std::vector<float> *waves){
+    if(!this->write_samples(waves)) return 0;
+    return this->close();
+}
+
+bool owavestream::write_file(float *waves, uint32_t amount){
+    if(!this->write_samples(waves, amount)) return 0;
+    return this->close();
 }
 

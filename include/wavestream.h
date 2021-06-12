@@ -164,12 +164,15 @@ public:
     // continue reading amount frames from the current position.
     // if end of file is reached, the rest of the values are assigned to 0.
     bool read_frames(std::vector<float> *waves, uint32_t amount);
+    bool read_frames(float *waves, uint32_t amount);
 
     // navigate to beginFrame & continue reading.
     bool read_frames(std::vector<float> *waves, uint32_t beginFrame, uint32_t amount);
+    bool read_frames(float *waves, uint32_t beginFrame, uint32_t amount);
     
     // reads the whole file, does no close it.
     bool read_file(std::vector<float> *waves);
+    bool read_file(float *waves);
         
 };
 
@@ -216,9 +219,11 @@ public:
 
     // appends waves at the end of the file
     bool write_samples(std::vector<float> *waves);
+    bool write_samples(float *waves, uint32_t amount);
 
     // appends waves at the end of the file and closes it
     bool write_file(std::vector<float> *waves);
+    bool write_file(float *waves, uint32_t amount);
 
 };
 

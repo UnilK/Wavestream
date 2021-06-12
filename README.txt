@@ -2,8 +2,8 @@
 Wavestream provides classes iwavestream and owavestream for
 reading & writing .wav files. The interface provided is:
 
-wave file -> std::vector<float> 
-std::vector<float> -> wave file
+wave file -> std::vector<float> or float*
+std::vector<float> or float* -> wave file
 
 
 

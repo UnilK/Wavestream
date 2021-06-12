@@ -202,6 +202,48 @@ bool iwavestream::read_frames(std::vector<float> *waves, uint32_t amount){
     return 1;
 }
 
+bool iwavestream::read_frames(float *waves, uint32_t amount){
+
+    if(!this->wavFile.good()){
+        this->add_log("error reading file");
+        return 0;
+    }
+
+    uint32_t readAmount = amount;
+    
+    int64_t probeSize = (int64_t)amount*this->frameSize+this->wavFile.tellg()-this->dataBegin;
+
+    if(probeSize > this->dataSize){
+        readAmount = amount - (probeSize-this->dataSize)/this->frameSize;
+        this->add_log(
+                "could only read "+std::to_string(readAmount)
+                +" frames as end end of file was reached.");
+    }
+
+    uint32_t buffz = readAmount*this->frameSize;
+    char *buff = new char[buffz];
+    
+    readAmount *= this->channels;
+    
+    this->wavFile.read(buff, buffz);
+
+    for(uint32_t i=0; i<readAmount; i++){
+        waves[i] = this->listen_data(buff+this->sampleSize*i);
+    }
+    
+    if(!this->wavFile){
+        this->add_log("error reading file");
+        return 0;
+    }
+
+    if(this->wavFile.eof() || (uint32_t)this->wavFile.tellg()-this->dataBegin >= this->dataSize){
+        this->add_log("end of file reached");
+        return 0;
+    }
+
+    return 1;
+}
+
 bool iwavestream::read_frames(std::vector<float> *waves, uint32_t beginFrame, uint32_t amount){
     
     if((int64_t)beginFrame*this->sampleSize > this->dataSize){
@@ -213,7 +255,23 @@ bool iwavestream::read_frames(std::vector<float> *waves, uint32_t beginFrame, ui
     return this->read_frames(waves, amount);
 }
 
+bool iwavestream::read_frames(float *waves, uint32_t beginFrame, uint32_t amount){
+    
+    if((int64_t)beginFrame*this->sampleSize > this->dataSize){
+        this->add_log("couldn't read frames, beginFrame is out of bounds.");
+        return 0;
+    }
+
+    this->wavFile.seekg(this->dataBegin+beginFrame*this->sampleSize);
+    return this->read_frames(waves, amount);
+}
+
 bool iwavestream::read_file(std::vector<float> *waves){
+    this->wavFile.seekg(this->dataBegin);
+    return this->read_frames(waves, this->dataSize/this->frameSize);
+}
+
+bool iwavestream::read_file(float *waves){
     this->wavFile.seekg(this->dataBegin);
     return this->read_frames(waves, this->dataSize/this->frameSize);
 }
