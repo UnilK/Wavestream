@@ -18,7 +18,7 @@ bool iwavestream::handle_unexpected_chunk(){
     uint32_t chunkSize = this->read_uint32();
     char *buff = new char[chunkSize];
     wavFile.read(buff, chunkSize);
-    delete buff;
+    delete[] buff;
 
     if(!this->wavFile.good()){
         this->add_log("error reading unexpected chunk of size "+std::to_string(chunkSize));
@@ -156,7 +156,7 @@ bool iwavestream::initialize(){
     return 1;
 }
 
-bool iwavestream::read_frames(std::vector<float> *waves, uint32_t amount){
+bool iwavestream::read_frames(std::vector<float> &waves, uint32_t amount){
 
     if(!this->wavFile.good()){
         this->add_log("error reading file");
@@ -177,17 +177,19 @@ bool iwavestream::read_frames(std::vector<float> *waves, uint32_t amount){
     uint32_t buffz = readAmount*this->frameSize;
     char *buff = new char[buffz];
     
-    uint32_t bsize = waves->size();
+    uint32_t bsize = waves.size();
 
     readAmount *= this->channels;
 
-    waves->resize(bsize+amount, 0);
+    waves.resize(bsize+amount, 0);
     
     this->wavFile.read(buff, buffz);
 
     for(uint32_t i=0; i<readAmount; i++){
-        (*waves)[bsize+i] = this->listen_data(buff+this->sampleSize*i);
+        waves[bsize+i] = this->listen_data(buff+this->sampleSize*i);
     }
+
+    delete[] buff;
     
     if(!this->wavFile){
         this->add_log("error reading file");
@@ -230,6 +232,8 @@ bool iwavestream::read_frames(float *waves, uint32_t amount){
     for(uint32_t i=0; i<readAmount; i++){
         waves[i] = this->listen_data(buff+this->sampleSize*i);
     }
+
+    delete[] buff;
     
     if(!this->wavFile){
         this->add_log("error reading file");
@@ -244,7 +248,7 @@ bool iwavestream::read_frames(float *waves, uint32_t amount){
     return 1;
 }
 
-bool iwavestream::read_frames(std::vector<float> *waves, uint32_t beginFrame, uint32_t amount){
+bool iwavestream::read_frames(std::vector<float> &waves, uint32_t beginFrame, uint32_t amount){
     
     if((int64_t)beginFrame*this->sampleSize > this->dataSize){
         this->add_log("couldn't read frames, beginFrame is out of bounds.");
@@ -266,7 +270,7 @@ bool iwavestream::read_frames(float *waves, uint32_t beginFrame, uint32_t amount
     return this->read_frames(waves, amount);
 }
 
-bool iwavestream::read_file(std::vector<float> *waves){
+bool iwavestream::read_file(std::vector<float> &waves){
     this->wavFile.seekg(this->dataBegin);
     return this->read_frames(waves, this->dataSize/this->frameSize);
 }

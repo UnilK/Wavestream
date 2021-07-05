@@ -27,7 +27,7 @@ protected:
     uint32_t
         fileSize = 0,       // (size of the whole file in bytes) - 8 
         formatSize = 0,     // format chunk size in bytes
-        frameRate = 0,      // sampling rate, frames per second
+        frameRate = 0,      // sampling rate = frames per second
         byteRate = 0,       // bytes per second
         dataSize = 0;       // data chunk size in bytes
 
@@ -160,18 +160,19 @@ public:
     bool open(std::string source_);
     bool close();
 
-
     // continue reading amount frames from the current position.
     // if end of file is reached, the rest of the values are assigned to 0.
-    bool read_frames(std::vector<float> *waves, uint32_t amount);
+    // for the vector overload, values are appended to the end of the list.
+    bool read_frames(std::vector<float> &waves, uint32_t amount);
     bool read_frames(float *waves, uint32_t amount);
 
     // navigate to beginFrame & continue reading.
-    bool read_frames(std::vector<float> *waves, uint32_t beginFrame, uint32_t amount);
+    // for the vector overload, values are appended to the end of the list.
+    bool read_frames(std::vector<float> &waves, uint32_t beginFrame, uint32_t amount);
     bool read_frames(float *waves, uint32_t beginFrame, uint32_t amount);
     
     // reads the whole file, does no close it.
-    bool read_file(std::vector<float> *waves);
+    bool read_file(std::vector<float> &waves);
     bool read_file(float *waves);
         
 };
@@ -217,12 +218,12 @@ public:
     // a file must be closed for the data to be written correctly.
     bool close();
 
-    // appends waves at the end of the file
-    bool write_samples(std::vector<float> *waves);
+    // appends samples at the end of the file. SAMPLES, not FRAMES.
+    bool write_samples(std::vector<float> &waves);
     bool write_samples(float *waves, uint32_t amount);
 
     // appends waves at the end of the file and closes it
-    bool write_file(std::vector<float> *waves);
+    bool write_file(std::vector<float> &waves);
     bool write_file(float *waves, uint32_t amount);
 
 };

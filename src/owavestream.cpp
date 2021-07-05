@@ -47,7 +47,7 @@ bool owavestream::close(){
     this->fileSize = 12+this->formatSize+8+this->dataSize+(this->dataSize&1);
     if(this->format != 0x0001) this->fileSize += 12;
 
-    char zeropad[9] = {0};
+    char zeropad[64] = {0};
     while((this->dataSize/this->sampleSize) % this->channels){
         this->wavFile.write(zeropad, this->sampleSize);
         this->dataSize += this->sampleSize;
@@ -188,41 +188,16 @@ bool owavestream::initialize(){
     return 1;
 }
 
-bool owavestream::write_samples(std::vector<float> *waves){
+bool owavestream::write_samples(std::vector<float> &waves){
 
-    uint32_t wsize = waves->size();
+    uint32_t wsize = waves.size();
 
-    if((uint32_t)this->dataSize+wsize+72 > 1ll<<32){
+    if((int64_t)this->dataSize+wsize+72 >= 1ll<<32){
         this->add_log("can't write samples, file would be too large");
         return 0;
     }
 
-    this->dataSize += wsize*this->sampleSize;
-    
-    char *buff = new char[wsize*this->sampleSize];
-
-    for(uint32_t i=0; i<wsize; i++){
-        this->speak_data((*waves)[i], buff+i*this->sampleSize);
-    }
-
-    this->wavFile.write(buff, wsize*this->sampleSize);
-
-    if(!this->wavFile.good()){
-        this->add_log("error writing file");
-        return 0;
-    }
-
-    return 1;
-}
-
-bool owavestream::write_samples(float *waves, uint32_t amount){
-
-    uint32_t wsize = amount*this->channels;
-
-    if((uint32_t)this->dataSize+wsize+72 > 1ll<<32){
-        this->add_log("can't write samples, file would be too large");
-        return 0;
-    }
+    if(wsize == 0) return 1;
 
     this->dataSize += wsize*this->sampleSize;
     
@@ -234,6 +209,8 @@ bool owavestream::write_samples(float *waves, uint32_t amount){
 
     this->wavFile.write(buff, wsize*this->sampleSize);
 
+    delete[] buff;
+
     if(!this->wavFile.good()){
         this->add_log("error writing file");
         return 0;
@@ -242,7 +219,38 @@ bool owavestream::write_samples(float *waves, uint32_t amount){
     return 1;
 }
 
-bool owavestream::write_file(std::vector<float> *waves){
+bool owavestream::write_samples(float *waves, uint32_t amount){
+
+    uint32_t wsize = amount;
+
+    if((int64_t)this->dataSize+wsize+72 >= 1ll<<32){
+        this->add_log("can't write samples, file would be too large");
+        return 0;
+    }
+
+    if(wsize == 0) return 1;
+
+    this->dataSize += wsize*this->sampleSize;
+    
+    char *buff = new char[wsize*this->sampleSize];
+
+    for(uint32_t i=0; i<wsize; i++){
+        this->speak_data(waves[i], buff+i*this->sampleSize);
+    }
+
+    this->wavFile.write(buff, wsize*this->sampleSize);
+
+    delete[] buff;
+
+    if(!this->wavFile.good()){
+        this->add_log("error writing file");
+        return 0;
+    }
+
+    return 1;
+}
+
+bool owavestream::write_file(std::vector<float> &waves){
     if(!this->write_samples(waves)) return 0;
     return this->close();
 }
