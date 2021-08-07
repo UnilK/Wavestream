@@ -1,27 +1,28 @@
 #include "wavestream.h"
 #include "wave_dialog.h"
+#include "constants.h"
 
 uint16_t iwavestream::read_uint16(){
     char buff[2];
-    this->wavFile.read(buff, 2);    
+    wavFile.read(buff, 2);    
     return wave_dialog::listen_uint16(buff);
 }
 
 uint32_t iwavestream::read_uint32(){
     char buff[4];
-    this->wavFile.read(buff, 4);    
+    wavFile.read(buff, 4);    
     return wave_dialog::listen_uint32(buff);
 }
 
 bool iwavestream::handle_unexpected_chunk(){
     
-    uint32_t chunkSize = this->read_uint32();
+    uint32_t chunkSize = read_uint32();
     char *buff = new char[chunkSize];
     wavFile.read(buff, chunkSize);
     delete[] buff;
 
-    if(!this->wavFile.good()){
-        this->add_log("error reading unexpected chunk of size "+std::to_string(chunkSize));
+    if(!wavFile.good()){
+        add_log("error reading unexpected chunk of size "+std::to_string(chunkSize));
         return 0;
     }
 
@@ -36,247 +37,211 @@ bool iwavestream::compare_id(char *buff, std::string pattern){
 
 
 iwavestream::iwavestream(){
-    this->source = "";
-    this->listen_data = NULL;
+    source = "";
+    listen_data = NULL;
 }
 
 iwavestream::iwavestream(std::string source_){
-    this->open(source_);
+    open(source_);
 }
 
 bool iwavestream::open(std::string source_){
-    this->source = source_;
-    this->wavFile.open(source_);
-    return this->initialize();
+    source = source_;
+    wavFile.open(source_);
+    return initialize();
 }
 
 bool iwavestream::close(){
-    this->wavFile.close();
+    wavFile.close();
     return 1;
 }
 
 bool iwavestream::initialize(){
 
-    if(!this->wavFile.good()){
-        this->add_log("error reading file");
+    if(!wavFile.good()){
+        add_log("error reading file");
         return 0;
     }
 
     char buff4[4];
     
-    this->wavFile.read(buff4, 4);
+    wavFile.read(buff4, 4);
     
-    if(!this->compare_id(buff4, "RIFF")){
-        this->add_log("file is not RIFF format");
+    if(!compare_id(buff4, "RIFF")){
+        add_log("file is not RIFF format");
         return 0;
     }
 
-    this->fileSize = this->read_uint32();
+    fileSize = read_uint32();
 
-    this->wavFile.read(buff4, 4);
+    wavFile.read(buff4, 4);
 
-    if(!this->compare_id(buff4, "WAVE")){
-        this->add_log("file is not WAVE format");
+    if(!compare_id(buff4, "WAVE")){
+        add_log("file is not WAVE format");
         return 0;
     }
 
-    this->wavFile.read(buff4, 4);
+    wavFile.read(buff4, 4);
 
-    while(!this->compare_id(buff4, "fmt ")){
-        this->add_log("unexpexted chunk, expected \"fmt \"");
-        bool ok = this->handle_unexpected_chunk();
+    while(!compare_id(buff4, "fmt ")){
+        add_log("unexpexted chunk, expected \"fmt \"");
+        bool ok = handle_unexpected_chunk();
         if(!ok) return 0;
-        this->wavFile.read(buff4, 4);
+        wavFile.read(buff4, 4);
     }
     
-    this->formatSize = this->read_uint32();
-    this->format = this->read_uint16();
-    this->channels = this->read_uint16();
-    this->frameRate = this->read_uint32();
-    this->byteRate = this->read_uint32();
-    this->frameSize = this->read_uint16();
-    this->sampleBits = this->read_uint16();
-    this->sampleSize = this->sampleBits/8;
+    formatSize = read_uint32();
+    format = read_uint16();
+    channels = read_uint16();
+    frameRate = read_uint32();
+    byteRate = read_uint32();
+    frameSize = read_uint16();
+    sampleBits = read_uint16();
+    sampleSize = sampleBits/8;
 
-    if(this->formatSize >= 18){
-        this->extensionSize = this->read_uint16();
+    if(formatSize >= 18){
+        extensionSize = read_uint16();
     }
 
-    if(this->formatSize == 40){
+    if(formatSize == 40){
         
-        this->validSampleBits = this->read_uint16();
-        this->channelMask = this->read_uint32();
+        validSampleBits = read_uint16();
+        channelMask = read_uint32();
 
-        this->wavFile.read(this->GUID, 16);
-        this->subformat = wave_dialog::listen_uint16(this->GUID);
+        wavFile.read(GUID, 16);
+        subformat = wave_dialog::listen_uint16(GUID);
     }
 
-    if(this->format == 0xfffe){ 
-        this->listen_data = wave_dialog::resolve_listener(this->subformat, this->validSampleBits);
-        if(this->listen_data == NULL){
-            this->add_log("format 0xfffe with subformat "+
-                    std::to_string(this->subformat)+" "+std::to_string(this->validSampleBits)
+    if(format == EXTENSIBLE){ 
+        listen_data = wave_dialog::resolve_listener(subformat, validSampleBits);
+        if(listen_data == NULL){
+            add_log("format 0xfffe with subformat "+
+                    std::to_string(subformat)+" "+std::to_string(validSampleBits)
                     +" is not supported.");
             return 0;
         }
     } else {
 
-        this->subformat = this->format;             // this enables handling all files
-        this->validSampleBits = this->sampleBits;   // as 0xfffe WAVE_FORMAT_EXTENSIBLE
+        subformat = format;             // this should enable handling all files
+        validSampleBits = sampleBits;   // as 0xfffe WAVE_FORMAT_EXTENSIBLE
 
-        this->listen_data = wave_dialog::resolve_listener(this->format, this->sampleBits);
-        if(this->listen_data == NULL){
-            this->add_log("format "+std::to_string(this->format)
-                    +" "+std::to_string(this->sampleBits)+" is not supported.");
+        listen_data = wave_dialog::resolve_listener(format, sampleBits);
+        if(listen_data == NULL){
+            add_log("format "+std::to_string(format)
+                    +" "+std::to_string(sampleBits)+" is not supported.");
             return 0;
         }
     }
     
-    this->wavFile.read(buff4, 4);
+    wavFile.read(buff4, 4);
 
-    while(!this->compare_id(buff4, "data")){
-        if(!this->compare_id(buff4, "fact")) this->add_log("unexpected chunk, expected \"data\"");
-        bool ok = this->handle_unexpected_chunk();
+    while(!compare_id(buff4, "data")){
+        if(!compare_id(buff4, "fact")) add_log("unexpected chunk, expected \"data\"");
+        bool ok = handle_unexpected_chunk();
         if(!ok) return 0;
-        this->wavFile.read(buff4, 4);
+        wavFile.read(buff4, 4);
     }
 
-    this->dataSize = this->read_uint32();
+    dataSize = read_uint32();
 
-    this->dataBegin = wavFile.tellg();
+    dataBegin = wavFile.tellg();
 
-    this->add_log(
-            "file initialized with:\nformat: "+std::to_string(this->format)
-            +"\nsubformat (if format is 0xfffe): "+std::to_string(this->subformat)
-            +"\nchannels: "+std::to_string(this->channels)
-            +"\nsample size: "+std::to_string(this->validSampleBits)
-            +"\nframe rate: "+std::to_string(this->frameRate)
-            +"\ndata amount: "+std::to_string(this->dataSize));
+    add_log(
+            "file initialized with:\nformat: "+std::to_string(format)
+            +"\nsubformat (if format is 0xfffe): "+std::to_string(subformat)
+            +"\nchannels: "+std::to_string(channels)
+            +"\nsample size: "+std::to_string(validSampleBits)
+            +"\nframe rate: "+std::to_string(frameRate)
+            +"\ndata amount: "+std::to_string(dataSize));
 
     return 1;
 }
 
-bool iwavestream::read_frames(std::vector<float> &waves, uint32_t amount){
+uint32_t iwavestream::read_samples(std::vector<float> &waves, uint32_t amount){
 
-    if(!this->wavFile.good()){
-        this->add_log("error reading file");
+    if(!wavFile.good()){
+        add_log("error reading file");
         return 0;
     }
 
-    uint32_t readAmount = amount;
-    
-    int64_t probeSize = (int64_t)amount*this->frameSize+this->wavFile.tellg()-this->dataBegin;
-
-    if(probeSize > this->dataSize){
-        readAmount = amount - (probeSize-this->dataSize)/this->frameSize;
-        this->add_log(
-                "could only read "+std::to_string(readAmount)
-                +" frames as end end of file was reached.");
-    }
-
-    uint32_t buffz = readAmount*this->frameSize;
-    char *buff = new char[buffz];
-    
-    uint32_t bsize = waves.size();
-
-    readAmount *= this->channels;
-
+    int64_t bsize = waves.size();
     waves.resize(bsize+amount, 0);
-    
-    this->wavFile.read(buff, buffz);
 
-    for(uint32_t i=0; i<readAmount; i++){
-        waves[bsize+i] = this->listen_data(buff+this->sampleSize*i);
-    }
-
-    delete[] buff;
-    
-    if(!this->wavFile){
-        this->add_log("error reading file");
-        return 0;
-    }
-
-    if(this->wavFile.eof() || (uint32_t)this->wavFile.tellg()-this->dataBegin >= this->dataSize){
-        this->add_log("end of file reached");
-        return 0;
-    }
-
-    return 1;
+    return read_samples(waves.data()+bsize, amount);
 }
 
-bool iwavestream::read_frames(float *waves, uint32_t amount){
+uint32_t iwavestream::read_samples(float *waves, uint32_t amount){
 
-    if(!this->wavFile.good()){
-        this->add_log("error reading file");
+    if(!wavFile.good()){
+        add_log("error reading file");
         return 0;
     }
 
     uint32_t readAmount = amount;
     
-    int64_t probeSize = (int64_t)amount*this->frameSize+this->wavFile.tellg()-this->dataBegin;
+    int64_t probeSize = (int64_t)amount*sampleSize+wavFile.tellg()-dataBegin;
 
-    if(probeSize > this->dataSize){
-        readAmount = amount - (probeSize-this->dataSize)/this->frameSize;
-        this->add_log(
+    if(probeSize > (int64_t)dataSize){
+        readAmount = amount - (probeSize-dataSize)/sampleSize;
+        add_log(
                 "could only read "+std::to_string(readAmount)
                 +" frames as end end of file was reached.");
     }
 
-    uint32_t buffz = readAmount*this->frameSize;
+    int64_t buffz = readAmount*sampleSize;
+
     char *buff = new char[buffz];
     
-    readAmount *= this->channels;
-    
-    this->wavFile.read(buff, buffz);
+    wavFile.read(buff, buffz);
 
     for(uint32_t i=0; i<readAmount; i++){
-        waves[i] = this->listen_data(buff+this->sampleSize*i);
+        waves[i] = listen_data(buff+i*sampleSize);
     }
 
     delete[] buff;
     
-    if(!this->wavFile){
-        this->add_log("error reading file");
+    if(!wavFile){
+        add_log("error reading file");
         return 0;
     }
 
-    if(this->wavFile.eof() || (uint32_t)this->wavFile.tellg()-this->dataBegin >= this->dataSize){
-        this->add_log("end of file reached");
-        return 0;
+    if(wavFile.eof() || (uint32_t)wavFile.tellg()-dataBegin >= dataSize){
+        add_log("end of file reached");
+        return readAmount;
     }
 
-    return 1;
+    return readAmount;
 }
 
-bool iwavestream::read_frames(std::vector<float> &waves, uint32_t beginFrame, uint32_t amount){
+uint32_t iwavestream::read_samples(std::vector<float> &waves, uint32_t beginSample, uint32_t amount){
     
-    if((int64_t)beginFrame*this->sampleSize > this->dataSize){
-        this->add_log("couldn't read frames, beginFrame is out of bounds.");
+    if((int64_t)beginSample*sampleSize > (int64_t)dataSize){
+        add_log("couldn't read frames, beginSample is out of bounds.");
         return 0;
     }
 
-    this->wavFile.seekg(this->dataBegin+beginFrame*this->sampleSize);
-    return this->read_frames(waves, amount);
+    wavFile.seekg(dataBegin+beginSample*sampleSize);
+    return read_samples(waves, amount);
 }
 
-bool iwavestream::read_frames(float *waves, uint32_t beginFrame, uint32_t amount){
+uint32_t iwavestream::read_samples(float *waves, uint32_t beginSample, uint32_t amount){
     
-    if((int64_t)beginFrame*this->sampleSize > this->dataSize){
-        this->add_log("couldn't read frames, beginFrame is out of bounds.");
+    if((int64_t)beginSample*sampleSize > (int64_t)dataSize){
+        add_log("couldn't read frames, beginSample is out of bounds.");
         return 0;
     }
 
-    this->wavFile.seekg(this->dataBegin+beginFrame*this->sampleSize);
-    return this->read_frames(waves, amount);
+    wavFile.seekg(dataBegin+beginSample*sampleSize);
+    return read_samples(waves, amount);
 }
 
-bool iwavestream::read_file(std::vector<float> &waves){
-    this->wavFile.seekg(this->dataBegin);
-    return this->read_frames(waves, this->dataSize/this->frameSize);
+uint32_t iwavestream::read_file(std::vector<float> &waves){
+    wavFile.seekg(dataBegin);
+    return read_samples(waves, dataSize/sampleSize);
 }
 
-bool iwavestream::read_file(float *waves){
-    this->wavFile.seekg(this->dataBegin);
-    return this->read_frames(waves, this->dataSize/this->frameSize);
+uint32_t iwavestream::read_file(float *waves){
+    wavFile.seekg(dataBegin);
+    return read_samples(waves, dataSize/sampleSize);
 }
 

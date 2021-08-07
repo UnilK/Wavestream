@@ -195,10 +195,14 @@ int main(){
 	std::string ifile;
 	cin >> ifile;
 
-	iwavestream I(ifile);
+	iwavestream I;
+    while(!I.open(ifile)){
+	    cout << "lol that's not a wav file.\n";
+        cin >> ifile;
+    }
 
 	std::vector<float> w;
-    float *w2 = new float[I.get_frame_amount()*I.get_channel_amount()];
+    float *w2 = new float[I.sample_amount()];
 
 	I.read_file(w);
 	I.read_file(w2);
@@ -223,9 +227,9 @@ int main(){
 	O1.write_file(w);
 	O2.write_file(w);
 	O3.write_file(w);
-	O4.write_file(w2, I.get_frame_amount());
-	O5.write_file(w2, I.get_frame_amount());
-	O6.write_file(w2, I.get_frame_amount());
+	O4.write_file(w2, I.sample_amount());
+	O5.write_file(w2, I.sample_amount());
+	O6.write_file(w2, I.sample_amount());
 
     for(int i=0; i<3; i++) O7.write_samples(w);
     O7.close();
@@ -237,8 +241,8 @@ int main(){
     iwavestream I2(ifile);
 
     for(int i=0; i<5; i++){
-        I2.read_frames(w3, 1000, I2.get_frame_amount()/2);
-        while(I2.read_frames(w3, 1000));
+        I2.read_samples(w3, I2.sample_amount()/2, 1000);
+        while(I2.read_samples(w3, 1000) == 1000);
     }
 
     owavestream O8;
@@ -247,9 +251,6 @@ int main(){
     O8.initialize();
     O8.write_file(w3);
 	
-	// for(auto i : O0.get_log()) cout << i << '\n';
-	// cout << '\n';
-
 	cout << "t1, PCM, 1 channel, 16 bits at 44,1 kHz:\n";
 	for(auto i : O1.get_log()) cout << i << '\n';
 	cout << '\n';

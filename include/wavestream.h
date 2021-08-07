@@ -1,6 +1,7 @@
 #ifndef WAVESTREAM_H
 #define WAVESTREAM_H
 
+#include <cstdint>
 #include <fstream>
 #include <vector>
 #include <string>
@@ -8,6 +9,12 @@
 class waveconfig{
 
 protected:
+
+    char GUID[16];  // the first 2 bytes are the subformat.
+    std::vector<std::string> log;
+    void add_log(std::string message);
+
+public:
 
     /*
         I'm following the documentation on the wave format found on this site:
@@ -71,12 +78,6 @@ protected:
         
     */
 
-    char GUID[16];  // the first 2 bytes are the subformat.
-
-    std::vector<std::string> log;
-
-public:
-
     waveconfig();
     waveconfig(
             uint16_t format,
@@ -88,7 +89,6 @@ public:
 
     waveconfig(waveconfig *other);
 
-    void add_log(std::string message);
     std::vector<std::string> get_log();
 
     // all functions returning a boolean will tell wether the function call was succesful.
@@ -111,16 +111,8 @@ public:
 
     bool copy_config(waveconfig*);
 
-
-    uint16_t get_format();
-    uint16_t get_channel_amount();
-    uint16_t get_sample_bitsize();
-    uint32_t get_frame_rate();
-    uint16_t get_subformat();
-    uint16_t get_channel_mask();
-    uint32_t get_data_size();
-
-    uint32_t get_frame_amount();    // data size in samples.
+    uint32_t sample_amount();   // data size in samples.
+    uint32_t frame_amount();    // data size in frames.
 
     std::vector<uint32_t> get_config();
     // returns {format,  channels, sampleBits, frameRate, subformat, channelMask}
@@ -160,20 +152,20 @@ public:
     bool open(std::string source_);
     bool close();
 
-    // continue reading amount frames from the current position.
+    // continue reading amount samples from the current position.
     // if end of file is reached, the rest of the values are assigned to 0.
-    // for the vector overload, values are appended to the end of the list.
-    bool read_frames(std::vector<float> &waves, uint32_t amount);
-    bool read_frames(float *waves, uint32_t amount);
+    // for the vector overload, values are appended to the end of the vector.
+    // returns the amount of samples read.
+    uint32_t read_samples(std::vector<float> &waves, uint32_t amount);
+    uint32_t read_samples(float *waves, uint32_t amount);
 
-    // navigate to beginFrame & continue reading.
-    // for the vector overload, values are appended to the end of the list.
-    bool read_frames(std::vector<float> &waves, uint32_t beginFrame, uint32_t amount);
-    bool read_frames(float *waves, uint32_t beginFrame, uint32_t amount);
+    // navigate to beginFrame & do regular raed_samples from that point.
+    uint32_t read_samples(std::vector<float> &waves, uint32_t beginSample, uint32_t amount);
+    uint32_t read_samples(float *waves, uint32_t beginSample, uint32_t amount);
     
-    // reads the whole file, does no close it.
-    bool read_file(std::vector<float> &waves);
-    bool read_file(float *waves);
+    // navigate to begin of file and read all frames.
+    uint32_t read_file(std::vector<float> &waves);
+    uint32_t read_file(float *waves);
         
 };
 
@@ -212,7 +204,7 @@ public:
     // wave files must be initialized before anything can be written on them.
     bool initialize();
 
-    // opens a wave file
+    // opens a wave file for writing
     bool open(std::string outSource_);
 
     // a file must be closed for the data to be written correctly.
