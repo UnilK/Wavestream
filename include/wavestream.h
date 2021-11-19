@@ -90,6 +90,7 @@ public:
     waveconfig(waveconfig *other);
 
     std::vector<std::string> get_log();
+    bool logging = 0;
 
     // all functions returning a boolean will tell wether the function call was succesful.
     // If an error or something worth of notice happened, a message is added to the log.
@@ -129,13 +130,13 @@ protected:
     std::ifstream wavFile;
     uint32_t dataBegin;
 
-    float (*listen_data)(char*);
-
     uint16_t read_uint16();
     uint32_t read_uint32();
 
     bool handle_unexpected_chunk();
     bool compare_id(char*, std::string);
+
+    uint32_t datatype = 0;
 
 public:
     
@@ -180,10 +181,10 @@ protected:
     std::string outSource;
     std::ofstream wavFile;
 
-    void (*speak_data)(float, char*);
-    
     void write_uint16(uint16_t);
     void write_uint32(uint32_t);
+
+    uint32_t datatype = 0;
 
 public:
 

@@ -46,15 +46,17 @@ bool waveconfig::set_format(uint16_t format_){
             return 1;
     }
     
-    add_log("format "+std::to_string(format_)
+    if(logging){
+        add_log("format "+std::to_string(format_)
             +" not recognized. Known formats are 0x0001, 0x0003 and 0xfffe");
+    }
     return 0;
 }
 
 bool waveconfig::set_channel_amount(uint16_t channels_){
     
     if(channels_ > 18){
-        add_log(std::to_string(channels_)+" is too many channels. Max 18.");
+        if(logging) add_log(std::to_string(channels_)+" is too many channels. Max 18.");
         return 0;
     }
 
@@ -102,13 +104,16 @@ bool waveconfig::set_subformat(uint16_t subformat_){
                 return 1;
         }
     
-        add_log("Subormat "+std::to_string(subformat_)
+        if(logging){
+            add_log("Subormat "+std::to_string(subformat_)
                 +" not recognized. Supported formats are 0x0001, 0x0003");
+        }
+
         return 0;
 
     }
         
-    add_log("there is no subformat, as format is not WAVE_FORMAT_EXTENSIBLE");    
+    if(logging) add_log("there is no subformat, as format is not WAVE_FORMAT_EXTENSIBLE");    
     return 0;
     
 }

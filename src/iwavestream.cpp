@@ -17,12 +17,11 @@ uint32_t iwavestream::read_uint32(){
 bool iwavestream::handle_unexpected_chunk(){
     
     uint32_t chunkSize = read_uint32();
-    char *buff = new char[chunkSize];
+    char buff[chunkSize];
     wavFile.read(buff, chunkSize);
-    delete[] buff;
 
     if(!wavFile.good()){
-        add_log("error reading unexpected chunk of size "+std::to_string(chunkSize));
+        if(logging) add_log("error reading unexpected chunk of size "+std::to_string(chunkSize));
         return 0;
     }
 
@@ -38,7 +37,6 @@ bool iwavestream::compare_id(char *buff, std::string pattern){
 
 iwavestream::iwavestream(){
     source = "";
-    listen_data = NULL;
 }
 
 iwavestream::iwavestream(std::string source_){
@@ -59,7 +57,7 @@ bool iwavestream::close(){
 bool iwavestream::initialize(){
 
     if(!wavFile.good()){
-        add_log("error reading file");
+        if(logging) add_log("error reading file");
         return 0;
     }
 
@@ -68,7 +66,7 @@ bool iwavestream::initialize(){
     wavFile.read(buff4, 4);
     
     if(!compare_id(buff4, "RIFF")){
-        add_log("file is not RIFF format");
+        if(logging) add_log("file is not RIFF format");
         return 0;
     }
 
@@ -77,14 +75,14 @@ bool iwavestream::initialize(){
     wavFile.read(buff4, 4);
 
     if(!compare_id(buff4, "WAVE")){
-        add_log("file is not WAVE format");
+        if(logging) add_log("file is not WAVE format");
         return 0;
     }
 
     wavFile.read(buff4, 4);
 
     while(!compare_id(buff4, "fmt ")){
-        add_log("unexpexted chunk, expected \"fmt \"");
+        if(logging) add_log("unexpexted chunk, expected \"fmt \"");
         bool ok = handle_unexpected_chunk();
         if(!ok) return 0;
         wavFile.read(buff4, 4);
@@ -113,11 +111,13 @@ bool iwavestream::initialize(){
     }
 
     if(format == EXTENSIBLE){ 
-        listen_data = wave_dialog::resolve_listener(subformat, validSampleBits);
-        if(listen_data == NULL){
-            add_log("format 0xfffe with subformat "+
+        datatype = wave_dialog::resolve_dialog(subformat, validSampleBits);
+        if(!datatype){
+            if(logging){
+                add_log("format 0xfffe with subformat "+
                     std::to_string(subformat)+" "+std::to_string(validSampleBits)
                     +" is not supported.");
+            }
             return 0;
         }
     } else {
@@ -125,10 +125,12 @@ bool iwavestream::initialize(){
         subformat = format;             // this should enable handling all files
         validSampleBits = sampleBits;   // as 0xfffe WAVE_FORMAT_EXTENSIBLE
 
-        listen_data = wave_dialog::resolve_listener(format, sampleBits);
-        if(listen_data == NULL){
-            add_log("format "+std::to_string(format)
+        datatype = wave_dialog::resolve_dialog(format, sampleBits);
+        if(!datatype){
+            if(logging){
+                add_log("format "+std::to_string(format)
                     +" "+std::to_string(sampleBits)+" is not supported.");
+            }
             return 0;
         }
     }
@@ -136,7 +138,7 @@ bool iwavestream::initialize(){
     wavFile.read(buff4, 4);
 
     while(!compare_id(buff4, "data")){
-        if(!compare_id(buff4, "fact")) add_log("unexpected chunk, expected \"data\"");
+        if(!compare_id(buff4, "fact") && logging) add_log("unexpected chunk, expected \"data\"");
         bool ok = handle_unexpected_chunk();
         if(!ok) return 0;
         wavFile.read(buff4, 4);
@@ -146,13 +148,15 @@ bool iwavestream::initialize(){
 
     dataBegin = wavFile.tellg();
 
-    add_log(
+    if(logging){
+        add_log(
             "file initialized with:\nformat: "+std::to_string(format)
             +"\nsubformat (if format is 0xfffe): "+std::to_string(subformat)
             +"\nchannels: "+std::to_string(channels)
             +"\nsample size: "+std::to_string(validSampleBits)
             +"\nframe rate: "+std::to_string(frameRate)
             +"\ndata amount: "+std::to_string(dataSize));
+    }
 
     return 1;
 }
@@ -160,7 +164,7 @@ bool iwavestream::initialize(){
 uint32_t iwavestream::read_samples(std::vector<float> &waves, uint32_t amount){
 
     if(!wavFile.good()){
-        add_log("error reading file");
+        if(logging) add_log("error reading file");
         return 0;
     }
 
@@ -173,7 +177,7 @@ uint32_t iwavestream::read_samples(std::vector<float> &waves, uint32_t amount){
 uint32_t iwavestream::read_samples(float *waves, uint32_t amount){
 
     if(!wavFile.good()){
-        add_log("error reading file");
+        if(logging) add_log("error reading file");
         return 0;
     }
 
@@ -183,30 +187,58 @@ uint32_t iwavestream::read_samples(float *waves, uint32_t amount){
 
     if(probeSize > (int64_t)dataSize){
         readAmount = amount - (probeSize-dataSize)/sampleSize;
-        add_log(
+        if(logging){
+            add_log(
                 "could only read "+std::to_string(readAmount)
                 +" frames as end end of file was reached.");
+        }
     }
 
     int64_t buffz = readAmount*sampleSize;
 
-    char *buff = new char[buffz];
+    char buff[buffz];
     
     wavFile.read(buff, buffz);
 
-    for(uint32_t i=0; i<readAmount; i++){
-        waves[i] = listen_data(buff+i*sampleSize);
+    switch(datatype){
+        case wave_dialog::INT8_ID:
+            for(uint32_t i=0; i<readAmount; i++){
+                waves[i] = wave_dialog::listen_int8_as_float(buff+i*sampleSize);
+            }
+            break;
+        case wave_dialog::INT16_ID:
+            for(uint32_t i=0; i<readAmount; i++){
+                waves[i] = wave_dialog::listen_int16_as_float(buff+i*sampleSize);
+            }
+            break;
+        case wave_dialog::INT24_ID:
+            for(uint32_t i=0; i<readAmount; i++){
+                waves[i] = wave_dialog::listen_int24_as_float(buff+i*sampleSize);
+            }
+            break;
+        case wave_dialog::INT32_ID:
+            for(uint32_t i=0; i<readAmount; i++){
+                waves[i] = wave_dialog::listen_int32_as_float(buff+i*sampleSize);
+            }
+            break;
+        case wave_dialog::FLOAT32_ID:
+            for(uint32_t i=0; i<readAmount; i++){
+                waves[i] = wave_dialog::listen_int32_as_float(buff+i*sampleSize);
+            }
+            break;
+        default:
+            if(logging){
+                add_log("file was initialized with unrecognized datatype\nand no data was read");
+            }
     }
-
-    delete[] buff;
     
     if(!wavFile){
-        add_log("error reading file");
+        if(logging) add_log("error reading file");
         return 0;
     }
 
     if(wavFile.eof() || (uint32_t)wavFile.tellg()-dataBegin >= dataSize){
-        add_log("end of file reached");
+        if(logging) add_log("end of file reached");
         return readAmount;
     }
 
@@ -216,7 +248,7 @@ uint32_t iwavestream::read_samples(float *waves, uint32_t amount){
 uint32_t iwavestream::read_samples(std::vector<float> &waves, uint32_t beginSample, uint32_t amount){
     
     if((int64_t)beginSample*sampleSize > (int64_t)dataSize){
-        add_log("couldn't read frames, beginSample is out of bounds.");
+        if(logging) add_log("couldn't read frames, beginSample is out of bounds.");
         return 0;
     }
 
@@ -227,7 +259,7 @@ uint32_t iwavestream::read_samples(std::vector<float> &waves, uint32_t beginSamp
 uint32_t iwavestream::read_samples(float *waves, uint32_t beginSample, uint32_t amount){
     
     if((int64_t)beginSample*sampleSize > (int64_t)dataSize){
-        add_log("couldn't read frames, beginSample is out of bounds.");
+        if(logging) add_log("couldn't read frames, beginSample is out of bounds.");
         return 0;
     }
 

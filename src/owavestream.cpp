@@ -18,19 +18,16 @@ void owavestream::write_uint32(uint32_t num){
 
 owavestream::owavestream(){
     outSource = "";
-    speak_data = NULL;
 }
 
 owavestream::owavestream(std::string outSource_, uint16_t format, uint16_t channel_amount,
         uint16_t sample_size, uint32_t frame_rate, uint16_t subformat, uint32_t mask){
-    speak_data = NULL;
     open(outSource_);
     config(format, channel_amount, sample_size, frame_rate, subformat, mask);
     initialize();
 }
 
 owavestream::owavestream(std::string outSource_, waveconfig *other){
-    speak_data = NULL;
     open(outSource_);
     copy_config(other);
     initialize();
@@ -39,7 +36,7 @@ owavestream::owavestream(std::string outSource_, waveconfig *other){
 bool owavestream::open(std::string outSource_){
     outSource = outSource_;
     wavFile.open(outSource);
-    if(!wavFile.good()) add_log("error opening file");
+    if(!wavFile.good() && logging) add_log("error opening file");
     return wavFile.good();
 }
 
@@ -71,35 +68,39 @@ bool owavestream::close(){
     }
 
     if(!wavFile){
-        add_log("error writing file while closing");
+        if(logging) add_log("error writing file while closing");
         wavFile.close();
         return 0;
     }
 
     wavFile.close();
     
-    add_log(
+    if(logging){
+        add_log(
             "file closed with total size "+std::to_string(fileSize)
             +" and data size "+std::to_string(dataSize));
-    
+    }
+
     return 1;
 }
 
 bool owavestream::initialize(){
     
     if(!wavFile.good()){
-        add_log("error writing file while initializing");
+        if(logging) add_log("error writing file while initializing");
         return 0;
     }
 
     wavFile.seekp(0);
 
     if(format == EXTENSIBLE){ 
-        speak_data = wave_dialog::resolve_speaker(subformat, validSampleBits);
-        if(speak_data == NULL){
-            add_log("format 0xfffe with subformat "+
+        datatype = wave_dialog::resolve_dialog(subformat, validSampleBits);
+        if(!datatype){
+            if(logging){
+                add_log("format 0xfffe with subformat "+
                     std::to_string(subformat)+" "+std::to_string(validSampleBits)
                     +" is not supported.");
+            }
             return 0;
         }
     } else {
@@ -107,10 +108,12 @@ bool owavestream::initialize(){
         subformat = format;
         validSampleBits = sampleBits;
 
-        speak_data = wave_dialog::resolve_speaker(format, sampleBits);
-        if(speak_data == NULL){
-            add_log("format "+std::to_string(format)
+        datatype = wave_dialog::resolve_dialog(format, sampleBits);
+        if(!datatype){
+            if(logging){
+                add_log("format "+std::to_string(format)
                     +" "+std::to_string(sampleBits)+" is not supported.");
+            }
             return 0;
         }
     }
@@ -144,7 +147,7 @@ bool owavestream::initialize(){
         for(uint32_t i=0; i<18; i++) channel_count += (channelMask>>i)&1;
 
         if(channels != channel_count){
-            add_log("error: channel count in mask doesn't match channel amount");
+            if(logging) add_log("error: channel count in mask doesn't match channel amount");
             return 0;
         }
 
@@ -176,13 +179,14 @@ bool owavestream::initialize(){
     dataSizePos = wavFile.tellp();
     write_uint32(dataSize); 
     
-    add_log(
+    if(logging){
+        add_log(
             "file initialized with:\nformat: "+std::to_string(format)
             +"\nsubformat (if format is 0xfffe): "+std::to_string(subformat)
             +"\nchannels: "+std::to_string(channels)
             +"\nsample size: "+std::to_string(validSampleBits)
             +"\nframe rate: "+std::to_string(frameRate));
-    
+    }
 
     return 1;
 }
@@ -194,7 +198,7 @@ bool owavestream::write_samples(std::vector<float> &waves){
 bool owavestream::write_samples(float *waves, uint32_t amount){
 
     if((int64_t)dataSize+amount+72 >= 1ll<<32){
-        add_log("can't write samples, file would be too large");
+        if(logging) add_log("can't write samples, file would be too large");
         return 0;
     }
 
@@ -202,18 +206,44 @@ bool owavestream::write_samples(float *waves, uint32_t amount){
 
     dataSize += amount*sampleSize;
     
-    char *buff = new char[amount*sampleSize];
+    char buff[amount*sampleSize];
 
-    for(uint32_t i=0; i<amount; i++){
-        speak_data(waves[i], buff+i*sampleSize);
+    switch(datatype){
+        case wave_dialog::INT8_ID:
+            for(uint32_t i=0; i<amount; i++){
+                wave_dialog::say_float_as_int8(waves[i], buff+i*sampleSize);
+            }
+            break;
+        case wave_dialog::INT16_ID:
+            for(uint32_t i=0; i<amount; i++){
+                wave_dialog::say_float_as_int16(waves[i], buff+i*sampleSize);
+            }
+            break;
+        case wave_dialog::INT24_ID:
+            for(uint32_t i=0; i<amount; i++){
+                wave_dialog::say_float_as_int24(waves[i], buff+i*sampleSize);
+            }
+            break;
+        case wave_dialog::INT32_ID:
+            for(uint32_t i=0; i<amount; i++){
+                wave_dialog::say_float_as_int32(waves[i], buff+i*sampleSize);
+            }
+            break;
+        case wave_dialog::FLOAT32_ID:
+            for(uint32_t i=0; i<amount; i++){
+                wave_dialog::say_float32(waves[i], buff+i*sampleSize);
+            }
+            break;
+        default:
+            if(logging){
+                add_log("file was initialized with unrecognized datatype\nand no data was written");
+            }
     }
 
     wavFile.write(buff, amount*sampleSize);
 
-    delete[] buff;
-
     if(!wavFile.good()){
-        add_log("error writing file");
+        if(logging) add_log("error writing file");
         return 0;
     }
 
