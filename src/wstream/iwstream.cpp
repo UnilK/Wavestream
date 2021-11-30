@@ -261,6 +261,12 @@ uint32_t iwstream::read_move(float *waves, uint32_t amount){
     return readAmount;
 }
 
+std::vector<float> iwstream::read_move(uint32_t amount){
+    std::vector<float> waves;
+    read_move(waves, amount);
+    return waves;
+}
+
 uint32_t iwstream::read_silent(std::vector<float> &waves, uint32_t amount){
     uint32_t previous = tell();
     uint32_t num = read_move(waves, amount);
@@ -275,6 +281,12 @@ uint32_t iwstream::read_silent(float *waves, uint32_t amount){
     return num;
 }
 
+std::vector<float> iwstream::read_silent(uint32_t amount){
+    std::vector<float> waves;
+    read_silent(waves, amount);
+    return waves;
+}
+
 uint32_t iwstream::read_move(std::vector<float> &waves, uint32_t beginSample, uint32_t amount){
     if(!seek(beginSample)) return 0;
     return read_move(waves, amount);
@@ -283,6 +295,12 @@ uint32_t iwstream::read_move(std::vector<float> &waves, uint32_t beginSample, ui
 uint32_t iwstream::read_move(float *waves, uint32_t beginSample, uint32_t amount){
     if(!seek(beginSample)) return 0;
     return read_move(waves, amount);
+}
+
+std::vector<float> iwstream::read_move(uint32_t beginSample, uint32_t amount){
+    std::vector<float> waves;
+    read_move(waves, beginSample, amount);
+    return waves;
 }
 
 uint32_t iwstream::read_silent(std::vector<float> &waves, uint32_t beginSample, uint32_t amount){
@@ -299,6 +317,12 @@ uint32_t iwstream::read_silent(float *waves, uint32_t beginSample, uint32_t amou
     return num;
 }
 
+std::vector<float> iwstream::read_silent(uint32_t beginSample, uint32_t amount){
+    std::vector<float> waves;
+    read_silent(waves, beginSample, amount);
+    return waves;
+}
+
 uint32_t iwstream::read_file(std::vector<float> &waves){
     wavFile.seekg(dataBegin);
     return read_move(waves, dataSize/sampleSize);
@@ -307,5 +331,11 @@ uint32_t iwstream::read_file(std::vector<float> &waves){
 uint32_t iwstream::read_file(float *waves){
     wavFile.seekg(dataBegin);
     return read_move(waves, dataSize/sampleSize);
+}
+
+std::vector<float> iwstream::read_file(){
+    std::vector<float> waves;
+    read_file(waves);
+    return waves;
 }
 

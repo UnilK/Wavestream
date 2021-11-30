@@ -7,7 +7,7 @@ opentest="gnome-terminal --tab -t test -- vim -p -S dev/.vimrc test/*.cpp"
 if [ $# -eq 0 ]
 then
     $openterminal
-    $openwstream
+    $openws
     $opentest
 fi
 

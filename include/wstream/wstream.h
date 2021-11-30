@@ -163,20 +163,27 @@ public:
     // returns the amount of samples read.
     uint32_t read_move(std::vector<float> &waves, uint32_t amount);
     uint32_t read_move(float *waves, uint32_t amount);
+    std::vector<float> read_move(uint32_t amount);
     
     // read samples but dont move the file pointer forward
     uint32_t read_silent(std::vector<float> &waves, uint32_t amount);
     uint32_t read_silent(float *waves, uint32_t amount);
+    std::vector<float> read_silent(uint32_t amount);
 
     // navigate to beginFrame & read from that point.
     uint32_t read_move(std::vector<float> &waves, uint32_t beginSample, uint32_t amount);
     uint32_t read_move(float *waves, uint32_t beginSample, uint32_t amount);
+    std::vector<float> read_move(uint32_t beginSample, uint32_t amount);
+    
+
     uint32_t read_silent(std::vector<float> &waves, uint32_t beginSample, uint32_t amount);
     uint32_t read_silent(float *waves, uint32_t beginSample, uint32_t amount);
+    std::vector<float> read_silent(uint32_t beginSample, uint32_t amount);
     
     // navigate to begin of file and read all frames.
     uint32_t read_file(std::vector<float> &waves);
     uint32_t read_file(float *waves);
+    std::vector<float> read_file();
         
 };
 
