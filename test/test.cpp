@@ -202,7 +202,7 @@ int main(){
     }
 
 	std::vector<float> w;
-    float *w2 = new float[I.sample_amount()];
+    float *w2 = new float[I.get_sample_amount()];
 
 	I.read_file(w);
 	I.read_file(w2);
@@ -213,23 +213,23 @@ int main(){
 	cout << '\n';
 
 	// owstream O0("t0.wav", 0x1, 1, 8, 44100); need to find some media player that supports this
-	owstream O1("t1.wav", 0x1, 1, 16, 44100);
-	owstream O2("t2.wav", 0x1, 1, 24, 44100);
-	owstream O3("t3.wav", 0x1, 1, 32, 44100);
-	owstream O4("t4.wav", 0x3, 1, 32, 44100);
+	owstream O1("t1.wav", 0x1, 1, 16, 44100); O1.logging = 1;
+	owstream O2("t2.wav", 0x1, 1, 24, 44100); O2.logging = 1;
+	owstream O3("t3.wav", 0x1, 1, 32, 44100); O3.logging = 1;
+	owstream O4("t4.wav", 0x3, 1, 32, 44100); O4.logging = 1;
 	
-	owstream O5("t5.wav", 0xfffe, 1, 16, 44100, 0x1, 1);
-	owstream O6("t6.wav", 0xfffe, 1, 32, 44100, 0x3, 1);
+	owstream O5("t5.wav", 0xfffe, 1, 16, 44100, 0x1, 1); O5.logging = 1;
+	owstream O6("t6.wav", 0xfffe, 1, 32, 44100, 0x3, 1); O6.logging = 1;
 	
-    owstream O7("t7.wav", &I);
+    owstream O7("t7.wav", &I); O7.logging = 1;
 
 	// O0.write_file(&w);
 	O1.write_file(w);
 	O2.write_file(w);
 	O3.write_file(w);
-	O4.write_file(w2, I.sample_amount());
-	O5.write_file(w2, I.sample_amount());
-	O6.write_file(w2, I.sample_amount());
+	O4.write_file(w2, I.get_sample_amount());
+	O5.write_file(w2, I.get_sample_amount());
+	O6.write_file(w2, I.get_sample_amount());
 
     for(int i=0; i<3; i++) O7.write_move(w);
     O7.close();
@@ -241,7 +241,7 @@ int main(){
     iwstream I2(ifile);
 
     for(int i=0; i<5; i++){
-        I2.read_move(w3, I2.sample_amount()/2, 1000);
+        I2.read_move(w3, I2.get_sample_amount()/2, 1000);
         while(I2.read_move(w3, 1000) == 1000);
     }
 
@@ -270,8 +270,6 @@ int main(){
 	for(auto i : O6.get_log()) cout << i << '\n';
 	cout << '\n';
     cout << "t7, initialized from test file & written in bits:";
-    for(auto i : O7.get_config()) cout << i << ' ';
-    cout << '\n';
 	for(auto i : O7.get_log()) cout << i << '\n';
 	cout << '\n';
 	cout << "t8, PCM, 1 channel, 16 bits at 44,1 kHz, file is read in a silly way:\n";

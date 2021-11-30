@@ -168,22 +168,18 @@ bool waveconfig::copy_config(waveconfig *other){
     return 1;
 }
 
-uint32_t waveconfig::sample_amount(){
+uint32_t waveconfig::get_sample_amount(){
     return dataSize/sampleSize;
 }
 
-uint32_t waveconfig::frame_amount(){
+uint32_t waveconfig::get_frame_amount(){
     return dataSize/frameSize;
 }
 
-std::vector<uint32_t> waveconfig::get_config(){
-    return {
-        format,
-        channels,
-        sampleBits,
-        frameRate,
-        subformat,
-        channelMask
-    };
-}
+uint16_t waveconfig::get_format(){ return format; }
+uint16_t waveconfig::get_channel_amount(){ return channels; }
+uint16_t waveconfig::get_sample_bitsize(){ return sampleBits; }
+uint32_t waveconfig::get_frame_rate(){ return frameRate; }
+uint16_t waveconfig::get_subformat(){ return subformat; }
+uint32_t waveconfig::get_channel_mask(){ return channelMask; }
 

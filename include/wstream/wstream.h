@@ -112,11 +112,15 @@ public:
 
     bool copy_config(waveconfig*);
 
-    uint32_t sample_amount();   // data size in samples.
-    uint32_t frame_amount();    // data size in frames.
+    uint32_t get_sample_amount();   // data size in samples.
+    uint32_t get_frame_amount();    // data size in frames.
 
-    std::vector<uint32_t> get_config();
-    // returns {format,  channels, sampleBits, frameRate, subformat, channelMask}
+    uint16_t get_format();
+    uint16_t get_channel_amount();
+    uint16_t get_sample_bitsize();
+    uint32_t get_frame_rate();  
+    uint16_t get_subformat();
+    uint32_t get_channel_mask();
 
 };
 
