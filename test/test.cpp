@@ -3,8 +3,8 @@
 #include <algorithm>
 #include <vector>
 
-#include "wave_dialog.h"
-#include "wavestream.h"
+#include "wstream/wave_dialog.h"
+#include "wstream/wstream.h"
 
 using std::cin;
 using std::cout;
@@ -195,7 +195,7 @@ int main(){
 	std::string ifile;
 	cin >> ifile;
 
-	iwavestream I;
+	iwstream I;
     while(!I.open(ifile)){
 	    cout << "lol that's not a wav file.\n";
         cin >> ifile;
@@ -212,16 +212,16 @@ int main(){
 	for(auto i : I.get_log()) cout << i << '\n';
 	cout << '\n';
 
-	// owavestream O0("t0.wav", 0x1, 1, 8, 44100); need to find some media player that supports this
-	owavestream O1("t1.wav", 0x1, 1, 16, 44100);
-	owavestream O2("t2.wav", 0x1, 1, 24, 44100);
-	owavestream O3("t3.wav", 0x1, 1, 32, 44100);
-	owavestream O4("t4.wav", 0x3, 1, 32, 44100);
+	// owstream O0("t0.wav", 0x1, 1, 8, 44100); need to find some media player that supports this
+	owstream O1("t1.wav", 0x1, 1, 16, 44100);
+	owstream O2("t2.wav", 0x1, 1, 24, 44100);
+	owstream O3("t3.wav", 0x1, 1, 32, 44100);
+	owstream O4("t4.wav", 0x3, 1, 32, 44100);
 	
-	owavestream O5("t5.wav", 0xfffe, 1, 16, 44100, 0x1, 1);
-	owavestream O6("t6.wav", 0xfffe, 1, 32, 44100, 0x3, 1);
+	owstream O5("t5.wav", 0xfffe, 1, 16, 44100, 0x1, 1);
+	owstream O6("t6.wav", 0xfffe, 1, 32, 44100, 0x3, 1);
 	
-    owavestream O7("t7.wav", &I);
+    owstream O7("t7.wav", &I);
 
 	// O0.write_file(&w);
 	O1.write_file(w);
@@ -231,21 +231,21 @@ int main(){
 	O5.write_file(w2, I.sample_amount());
 	O6.write_file(w2, I.sample_amount());
 
-    for(int i=0; i<3; i++) O7.write_samples(w);
+    for(int i=0; i<3; i++) O7.write_move(w);
     O7.close();
 
 
     I.close();
 
 	std::vector<float> w3;
-    iwavestream I2(ifile);
+    iwstream I2(ifile);
 
     for(int i=0; i<5; i++){
-        I2.read_samples(w3, I2.sample_amount()/2, 1000);
-        while(I2.read_samples(w3, 1000) == 1000);
+        I2.read_move(w3, I2.sample_amount()/2, 1000);
+        while(I2.read_move(w3, 1000) == 1000);
     }
 
-    owavestream O8;
+    owstream O8;
     O8.config(0x1, 1, 16, 44100);
     O8.open("t8.wav");
     O8.initialize();

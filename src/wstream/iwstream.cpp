@@ -1,20 +1,20 @@
-#include "wavestream.h"
-#include "wave_dialog.h"
-#include "constants.h"
+#include "wstream/wstream.h"
+#include "wstream/wave_dialog.h"
+#include "wstream/constants.h"
 
-uint16_t iwavestream::read_uint16(){
+uint16_t iwstream::read_uint16(){
     char buff[2];
     wavFile.read(buff, 2);    
     return wave_dialog::listen_uint16(buff);
 }
 
-uint32_t iwavestream::read_uint32(){
+uint32_t iwstream::read_uint32(){
     char buff[4];
     wavFile.read(buff, 4);    
     return wave_dialog::listen_uint32(buff);
 }
 
-bool iwavestream::handle_unexpected_chunk(){
+bool iwstream::handle_unexpected_chunk(){
     
     uint32_t chunkSize = read_uint32();
     char buff[chunkSize];
@@ -28,33 +28,33 @@ bool iwavestream::handle_unexpected_chunk(){
     return 1;
 }
 
-bool iwavestream::compare_id(char *buff, std::string pattern){
+bool iwstream::compare_id(char *buff, std::string pattern){
     for(uint32_t i=0; i<pattern.size(); i++) if(pattern[i] != buff[i]) return 0;
     return 1;
 }
 
 
 
-iwavestream::iwavestream(){
+iwstream::iwstream(){
     source = "";
 }
 
-iwavestream::iwavestream(std::string source_){
+iwstream::iwstream(std::string source_){
     open(source_);
 }
 
-bool iwavestream::open(std::string source_){
+bool iwstream::open(std::string source_){
     source = source_;
     wavFile.open(source_);
     return initialize();
 }
 
-bool iwavestream::close(){
+bool iwstream::close(){
     wavFile.close();
     return 1;
 }
 
-bool iwavestream::initialize(){
+bool iwstream::initialize(){
 
     if(!wavFile.good()){
         if(logging) add_log("error reading file");
@@ -161,7 +161,23 @@ bool iwavestream::initialize(){
     return 1;
 }
 
-uint32_t iwavestream::read_samples(std::vector<float> &waves, uint32_t amount){
+uint32_t iwstream::tell(){
+    return ((uint32_t)wavFile.tellg() - dataBegin) / sampleSize;
+}
+
+bool iwstream::seek(uint32_t beginSample){
+
+    if((int64_t)beginSample*sampleSize > (int64_t)dataSize){
+        if(logging) add_log("couldn't move to position, sample is out of bounds.");
+        return 0;
+    }
+
+    wavFile.seekg(dataBegin+beginSample*sampleSize);
+
+    return 1;
+}
+
+uint32_t iwstream::read_move(std::vector<float> &waves, uint32_t amount){
 
     if(!wavFile.good()){
         if(logging) add_log("error reading file");
@@ -171,10 +187,10 @@ uint32_t iwavestream::read_samples(std::vector<float> &waves, uint32_t amount){
     int64_t bsize = waves.size();
     waves.resize(bsize+amount, 0);
 
-    return read_samples(waves.data()+bsize, amount);
+    return read_move(waves.data()+bsize, amount);
 }
 
-uint32_t iwavestream::read_samples(float *waves, uint32_t amount){
+uint32_t iwstream::read_move(float *waves, uint32_t amount){
 
     if(!wavFile.good()){
         if(logging) add_log("error reading file");
@@ -245,35 +261,51 @@ uint32_t iwavestream::read_samples(float *waves, uint32_t amount){
     return readAmount;
 }
 
-uint32_t iwavestream::read_samples(std::vector<float> &waves, uint32_t beginSample, uint32_t amount){
-    
-    if((int64_t)beginSample*sampleSize > (int64_t)dataSize){
-        if(logging) add_log("couldn't read frames, beginSample is out of bounds.");
-        return 0;
-    }
-
-    wavFile.seekg(dataBegin+beginSample*sampleSize);
-    return read_samples(waves, amount);
+uint32_t iwstream::read_silent(std::vector<float> &waves, uint32_t amount){
+    uint32_t previous = tell();
+    uint32_t num = read_move(waves, amount);
+    seek(previous);
+    return num;
 }
 
-uint32_t iwavestream::read_samples(float *waves, uint32_t beginSample, uint32_t amount){
-    
-    if((int64_t)beginSample*sampleSize > (int64_t)dataSize){
-        if(logging) add_log("couldn't read frames, beginSample is out of bounds.");
-        return 0;
-    }
-
-    wavFile.seekg(dataBegin+beginSample*sampleSize);
-    return read_samples(waves, amount);
+uint32_t iwstream::read_silent(float *waves, uint32_t amount){
+    uint32_t previous = tell();
+    uint32_t num = read_move(waves, amount);
+    seek(previous);
+    return num;
 }
 
-uint32_t iwavestream::read_file(std::vector<float> &waves){
+uint32_t iwstream::read_move(std::vector<float> &waves, uint32_t beginSample, uint32_t amount){
+    if(!seek(beginSample)) return 0;
+    return read_move(waves, amount);
+}
+
+uint32_t iwstream::read_move(float *waves, uint32_t beginSample, uint32_t amount){
+    if(!seek(beginSample)) return 0;
+    return read_move(waves, amount);
+}
+
+uint32_t iwstream::read_silent(std::vector<float> &waves, uint32_t beginSample, uint32_t amount){
+    uint32_t previous = tell();
+    uint32_t num = read_move(waves, beginSample, amount);
+    seek(previous);
+    return num;
+}
+
+uint32_t iwstream::read_silent(float *waves, uint32_t beginSample, uint32_t amount){
+    uint32_t previous = tell();
+    uint32_t num = read_move(waves, beginSample, amount);
+    seek(previous);
+    return num;
+}
+
+uint32_t iwstream::read_file(std::vector<float> &waves){
     wavFile.seekg(dataBegin);
-    return read_samples(waves, dataSize/sampleSize);
+    return read_move(waves, dataSize/sampleSize);
 }
 
-uint32_t iwavestream::read_file(float *waves){
+uint32_t iwstream::read_file(float *waves){
     wavFile.seekg(dataBegin);
-    return read_samples(waves, dataSize/sampleSize);
+    return read_move(waves, dataSize/sampleSize);
 }
 

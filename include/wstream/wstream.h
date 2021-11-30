@@ -14,8 +14,6 @@ protected:
     std::vector<std::string> log;
     void add_log(std::string message);
 
-public:
-
     /*
         I'm following the documentation on the wave format found on this site:
         http://www-mmsp.ece.mcgill.ca/Documents/AudioFormats/WAVE/WAVE.html
@@ -78,6 +76,8 @@ public:
         
     */
 
+public:
+
     waveconfig();
     waveconfig(
             uint16_t format,
@@ -122,7 +122,7 @@ public:
 
 
 
-class iwavestream : public waveconfig{
+class iwstream : public waveconfig{
 
 protected:
     
@@ -140,29 +140,39 @@ protected:
 
 public:
     
-    iwavestream();
+    iwstream();
 
     // also opens & initializes the the stream
-    iwavestream(std::string source_);
+    iwstream(std::string source_);
 
     // reads the wave file configuration.
     bool initialize();
 
     // opens & initializes the wave file.
-    // iwavestream must be opened before anything can be read.
+    // iwstream must be opened before anything can be read.
     bool open(std::string source_);
     bool close();
+
+    // tell & seek reading position.
+    uint32_t tell();
+    bool seek(uint32_t beginSample);
 
     // continue reading amount samples from the current position.
     // if end of file is reached, the rest of the values are assigned to 0.
     // for the vector overload, values are appended to the end of the vector.
     // returns the amount of samples read.
-    uint32_t read_samples(std::vector<float> &waves, uint32_t amount);
-    uint32_t read_samples(float *waves, uint32_t amount);
+    uint32_t read_move(std::vector<float> &waves, uint32_t amount);
+    uint32_t read_move(float *waves, uint32_t amount);
+    
+    // read samples but dont move the file pointer forward
+    uint32_t read_silent(std::vector<float> &waves, uint32_t amount);
+    uint32_t read_silent(float *waves, uint32_t amount);
 
-    // navigate to beginFrame & do regular raed_samples from that point.
-    uint32_t read_samples(std::vector<float> &waves, uint32_t beginSample, uint32_t amount);
-    uint32_t read_samples(float *waves, uint32_t beginSample, uint32_t amount);
+    // navigate to beginFrame & read from that point.
+    uint32_t read_move(std::vector<float> &waves, uint32_t beginSample, uint32_t amount);
+    uint32_t read_move(float *waves, uint32_t beginSample, uint32_t amount);
+    uint32_t read_silent(std::vector<float> &waves, uint32_t beginSample, uint32_t amount);
+    uint32_t read_silent(float *waves, uint32_t beginSample, uint32_t amount);
     
     // navigate to begin of file and read all frames.
     uint32_t read_file(std::vector<float> &waves);
@@ -172,7 +182,7 @@ public:
 
 
 
-class owavestream : public waveconfig{
+class owstream : public waveconfig{
 
 protected:
 
@@ -188,10 +198,10 @@ protected:
 
 public:
 
-    owavestream();
+    owstream();
     
     // these constructors open & initialize the file
-    owavestream(
+    owstream(
             std::string outSource_,
             uint16_t format,
             uint16_t channel_amount,
@@ -200,7 +210,7 @@ public:
             uint16_t subformat = 0,
             uint32_t mask = 0);
 
-    owavestream(std::string outSource_, waveconfig *other);
+    owstream(std::string outSource_, waveconfig *other);
 
     // wave files must be initialized before anything can be written on them.
     bool initialize();
@@ -212,8 +222,8 @@ public:
     bool close();
 
     // appends samples at the end of the file. SAMPLES, not FRAMES.
-    bool write_samples(std::vector<float> &waves);
-    bool write_samples(float *waves, uint32_t amount);
+    bool write_move(std::vector<float> &waves);
+    bool write_move(float *waves, uint32_t amount);
 
     // appends waves at the end of the file and closes it
     bool write_file(std::vector<float> &waves);

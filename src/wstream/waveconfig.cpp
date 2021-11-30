@@ -1,6 +1,6 @@
-#include "wavestream.h"
-#include "wave_dialog.h"
-#include "constants.h"
+#include "wstream/wstream.h"
+#include "wstream/wave_dialog.h"
+#include "wstream/constants.h"
 
 waveconfig::waveconfig(){}
 

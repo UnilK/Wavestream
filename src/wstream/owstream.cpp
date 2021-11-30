@@ -1,14 +1,14 @@
-#include "wavestream.h"
-#include "wave_dialog.h"
-#include "constants.h"
+#include "wstream/wstream.h"
+#include "wstream/wave_dialog.h"
+#include "wstream/constants.h"
 
-void owavestream::write_uint16(uint16_t num){
+void owstream::write_uint16(uint16_t num){
     char buff[2];
     wave_dialog::say_uint16(num, buff);
     wavFile.write(buff, 2);   
 }
 
-void owavestream::write_uint32(uint32_t num){
+void owstream::write_uint32(uint32_t num){
     char buff[4];
     wave_dialog::say_uint32(num, buff);
     wavFile.write(buff, 4);   
@@ -16,31 +16,31 @@ void owavestream::write_uint32(uint32_t num){
 
 
 
-owavestream::owavestream(){
+owstream::owstream(){
     outSource = "";
 }
 
-owavestream::owavestream(std::string outSource_, uint16_t format, uint16_t channel_amount,
+owstream::owstream(std::string outSource_, uint16_t format, uint16_t channel_amount,
         uint16_t sample_size, uint32_t frame_rate, uint16_t subformat, uint32_t mask){
     open(outSource_);
     config(format, channel_amount, sample_size, frame_rate, subformat, mask);
     initialize();
 }
 
-owavestream::owavestream(std::string outSource_, waveconfig *other){
+owstream::owstream(std::string outSource_, waveconfig *other){
     open(outSource_);
     copy_config(other);
     initialize();
 }
 
-bool owavestream::open(std::string outSource_){
+bool owstream::open(std::string outSource_){
     outSource = outSource_;
     wavFile.open(outSource);
     if(!wavFile.good() && logging) add_log("error opening file");
     return wavFile.good();
 }
 
-bool owavestream::close(){
+bool owstream::close(){
 
     fileSize = 12+formatSize+8+dataSize+(dataSize&1);
     if(format != PCM) fileSize += 12;
@@ -84,7 +84,7 @@ bool owavestream::close(){
     return 1;
 }
 
-bool owavestream::initialize(){
+bool owstream::initialize(){
     
     if(!wavFile.good()){
         if(logging) add_log("error writing file while initializing");
@@ -191,11 +191,11 @@ bool owavestream::initialize(){
     return 1;
 }
 
-bool owavestream::write_samples(std::vector<float> &waves){
-    return write_samples(waves.data(), waves.size());
+bool owstream::write_move(std::vector<float> &waves){
+    return write_move(waves.data(), waves.size());
 }
 
-bool owavestream::write_samples(float *waves, uint32_t amount){
+bool owstream::write_move(float *waves, uint32_t amount){
 
     if((int64_t)dataSize+amount+72 >= 1ll<<32){
         if(logging) add_log("can't write samples, file would be too large");
@@ -250,13 +250,13 @@ bool owavestream::write_samples(float *waves, uint32_t amount){
     return 1;
 }
 
-bool owavestream::write_file(std::vector<float> &waves){
-    if(!write_samples(waves)) return 0;
+bool owstream::write_file(std::vector<float> &waves){
+    if(!write_move(waves)) return 0;
     return close();
 }
 
-bool owavestream::write_file(float *waves, uint32_t amount){
-    if(!write_samples(waves, amount)) return 0;
+bool owstream::write_file(float *waves, uint32_t amount){
+    if(!write_move(waves, amount)) return 0;
     return close();
 }
 

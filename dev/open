@@ -1,13 +1,13 @@
 #!/bin/bash
 
 openterminal="gnome-terminal"
-opensource="gnome-terminal --tab -t src -- vim -p -S dev/.vimrc src/*.cpp"
+openws="gnome-terminal --tab -t src -- vim -p -S dev/.vimrc src/wstream/*.cpp"
 opentest="gnome-terminal --tab -t test -- vim -p -S dev/.vimrc test/*.cpp"
 
 if [ $# -eq 0 ]
 then
     $openterminal
-    $opensource
+    $openwstream
     $opentest
 fi
 
@@ -15,10 +15,10 @@ while [[ $# -gt 0 ]]
 do
     case $1 in
         test)
-            $openmath
+            $opentest
             ;;
-        src)
-            $openwave
+        ws)
+            $openws
             ;;
         make)
             $openterminal

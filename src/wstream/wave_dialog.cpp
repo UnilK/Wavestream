@@ -1,4 +1,4 @@
-#include "wave_dialog.h"
+#include "wstream/wave_dialog.h"
 
 namespace wave_dialog{
 
