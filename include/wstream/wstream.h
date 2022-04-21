@@ -229,16 +229,16 @@ public:
     // opens a wave file for writing
     bool open(std::string outSource_);
 
-    // a file must be closed for the data to be written correctly.
+    // a file must be closed so that the data will written correctly.
     bool close();
 
     // appends samples at the end of the file. SAMPLES, not FRAMES.
-    bool write_move(std::vector<float> &waves);
-    bool write_move(float *waves, uint32_t amount);
+    bool write_move(const std::vector<float> &waves);
+    bool write_move(const float *waves, uint32_t amount);
 
     // appends waves at the end of the file and closes it
-    bool write_file(std::vector<float> &waves);
-    bool write_file(float *waves, uint32_t amount);
+    bool write_file(const std::vector<float> &waves);
+    bool write_file(const float *waves, uint32_t amount);
 
 };
 
