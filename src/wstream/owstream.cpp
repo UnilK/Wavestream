@@ -206,7 +206,7 @@ bool owstream::write_move(const float *waves, uint32_t amount){
 
     dataSize += amount*sampleSize;
     
-    char buff[amount*sampleSize];
+    char *buff = new char[amount*sampleSize];
 
     switch(datatype){
         case wave_dialog::INT8_ID:
@@ -246,6 +246,8 @@ bool owstream::write_move(const float *waves, uint32_t amount){
         if(logging) add_log("error writing file");
         return 0;
     }
+
+    delete[] buff;
 
     return 1;
 }
