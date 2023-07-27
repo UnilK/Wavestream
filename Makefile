@@ -18,7 +18,7 @@ BUILDSTRUCT := $(patsubst $(SRCDIR)%, $(BUILDDIR)%, $(SRCSTRUCT))
 INC := -I include
 
 #CXXFLAGS := -std=c++17 -Og -g -Wall
-CXXFLAGS := -std=c++17 -flto -mavx2 -O3 -funroll-loops -Wall
+CXXFLAGS := -std=c++17 -march=native -O3 -Wall -Wextra
 
 $(RESLIB): $(BUILDSTRUCT) $(OBJECTS)
 	@mkdir -p $(BINDIR)
