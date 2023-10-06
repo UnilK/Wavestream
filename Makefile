@@ -18,10 +18,9 @@ BUILDSTRUCT := $(patsubst $(SRCDIR)%, $(BUILDDIR)%, $(SRCSTRUCT))
 INC := -I include
 
 #CXXFLAGS := -std=c++17 -Og -g -Wall
-CXXFLAGS := -std=c++17 -O3 -Wall
+CXXFLAGS := -std=c++17 -march=native -O3 -Wall -Wextra
 
 $(RESLIB): $(BUILDSTRUCT) $(OBJECTS)
-	@echo "mkdir -p $(BINDIR)"
 	@mkdir -p $(BINDIR)
 	ar crs $(RESLIB) $(OBJECTS)
 
@@ -29,7 +28,6 @@ $(BUILDDIR)/%.o: $(SRCDIR)/%.cpp
 	$(CXX) -c $(CXXFLAGS) $(INC) $< -o $@
 
 $(BUILDSTRUCT):
-	@echo "mkdir -p $(BUILDSTRUCT)"
 	@mkdir -p $(BUILDSTRUCT)
 
 .PHONY: test

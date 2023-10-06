@@ -191,11 +191,11 @@ bool owstream::initialize(){
     return 1;
 }
 
-bool owstream::write_move(std::vector<float> &waves){
+bool owstream::write_move(const std::vector<float> &waves){
     return write_move(waves.data(), waves.size());
 }
 
-bool owstream::write_move(float *waves, uint32_t amount){
+bool owstream::write_move(const float *waves, uint32_t amount){
 
     if((int64_t)dataSize+amount+72 >= 1ll<<32){
         if(logging) add_log("can't write samples, file would be too large");
@@ -206,7 +206,7 @@ bool owstream::write_move(float *waves, uint32_t amount){
 
     dataSize += amount*sampleSize;
     
-    char buff[amount*sampleSize];
+    char *buff = new char[amount*sampleSize];
 
     switch(datatype){
         case wave_dialog::INT8_ID:
@@ -247,15 +247,17 @@ bool owstream::write_move(float *waves, uint32_t amount){
         return 0;
     }
 
+    delete[] buff;
+
     return 1;
 }
 
-bool owstream::write_file(std::vector<float> &waves){
+bool owstream::write_file(const std::vector<float> &waves){
     if(!write_move(waves)) return 0;
     return close();
 }
 
-bool owstream::write_file(float *waves, uint32_t amount){
+bool owstream::write_file(const float *waves, uint32_t amount){
     if(!write_move(waves, amount)) return 0;
     return close();
 }

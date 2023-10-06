@@ -17,13 +17,15 @@ uint32_t iwstream::read_uint32(){
 bool iwstream::handle_unexpected_chunk(){
     
     uint32_t chunkSize = read_uint32();
-    char buff[chunkSize];
+    char *buff = new char[chunkSize];
     wavFile.read(buff, chunkSize);
 
     if(!wavFile.good()){
         if(logging) add_log("error reading unexpected chunk of size "+std::to_string(chunkSize));
         return 0;
     }
+
+    delete[] buff;
 
     return 1;
 }
@@ -212,7 +214,7 @@ uint32_t iwstream::read_move(float *waves, uint32_t amount){
 
     int64_t buffz = readAmount*sampleSize;
 
-    char buff[buffz];
+    char *buff = new char[buffz];
     
     wavFile.read(buff, buffz);
 
@@ -257,6 +259,8 @@ uint32_t iwstream::read_move(float *waves, uint32_t amount){
         if(logging) add_log("end of file reached");
         return readAmount;
     }
+
+    delete[] buff;
 
     return readAmount;
 }
