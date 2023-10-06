@@ -239,7 +239,7 @@ uint32_t iwstream::read_move(float *waves, uint32_t amount){
             break;
         case wave_dialog::FLOAT32_ID:
             for(uint32_t i=0; i<readAmount; i++){
-                waves[i] = wave_dialog::listen_int32_as_float(buff+i*sampleSize);
+                waves[i] = wave_dialog::listen_float32(buff+i*sampleSize);
             }
             break;
         default:
