@@ -131,7 +131,6 @@ class iwstream : public waveconfig{
 protected:
     
     std::string source;
-    std::ifstream wavFile;
     uint32_t dataBegin;
 
     uint16_t read_uint16();
@@ -143,6 +142,8 @@ protected:
     uint32_t datatype = 0;
 
 public:
+    
+    std::ifstream wavFile;
     
     iwstream();
 
@@ -200,7 +201,6 @@ protected:
     uint32_t chunkSizePos = 4, dataSizePos = 0, uselessPos = 0;
 
     std::string outSource;
-    std::ofstream wavFile;
 
     void write_uint16(uint16_t);
     void write_uint32(uint32_t);
@@ -209,6 +209,8 @@ protected:
 
 public:
 
+    std::ofstream wavFile;
+    
     owstream();
     
     // these constructors open & initialize the file
